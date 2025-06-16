@@ -13,4 +13,6 @@
 11. vacuum & analyze
 12. REINDEXING
 13. Backup
-14. 
+14. Invalid Object Checker: Identify orphaned foreign keys, missing indexes on foreign keys, invalid constraints.
+15. Automated Restore Validator: Restore backup to test environment and validate with integrity checks.
+16. 
