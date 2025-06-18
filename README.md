@@ -86,17 +86,46 @@ if rows:
     send_email(html_table, "recipient@example.com")  # Replace with the recipient's email
 ```
 3. Dublicate Index
-4. Backup History of last 30 days.
-5. Alert if no checkpoint occured last 30 min
-6. Alert mount point usages grater than threshold.
-7. Alert replication lag
-8. Alert Max connections
-9. Alert blocking
-10. long running queries
-11. Alert and recommendation to run Vacuum full if table and index bloating exit it's size.
-12. vacuum & analyze
-13. REINDEXING
-14. Backup
-15. Invalid Object Checker: Identify orphaned foreign keys, missing indexes on foreign keys, invalid constraints.
-16. Automated Restore Validator: Restore backup to test environment and validate with integrity checks.
-17. 
+```
+
+```
+5. Backup History of last 30 days
+```
+```
+7. Alert if no checkpoint occured last 30 min
+```
+```
+9. Alert mount point usages grater than threshold
+```
+```
+11. Alert replication lag
+```
+```
+13. Alert Max connections
+```
+```
+15. Alert blocking
+```
+```
+17. long running queries
+```
+```
+19. Alert and recommendation to run Vacuum full if table and index bloating exit it's size
+```
+```
+21. vacuum & analyze
+```
+```
+23. REINDEXING
+```
+```
+25. Backup
+```
+```
+27. Invalid Object Checker: Identify orphaned foreign keys, missing indexes on foreign keys, invalid constraints
+```
+```
+29. Automated Restore Validator: Restore backup to test environment and validate with integrity checks
+```
+```
+31. 
