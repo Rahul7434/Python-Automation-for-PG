@@ -118,6 +118,119 @@ if rows:
 ```
 23. REINDEXING
 ```
+import psycopg2
+ 
+# The SQL query to analyze index bloat
+QUERY = """
+WITH index_stats AS (
+    SELECT
+        n.nspname AS schema_name,
+        c.relname AS table_name,
+        i.relname AS index_name,
+        pg_relation_size(i.oid) AS index_size_bytes,
+        ui.idx_scan AS index_scans,
+        t.n_live_tup AS live_tuples,
+        t.n_dead_tup AS dead_tuples,
+        pg_relation_size(c.oid) AS table_size_bytes,
+        c.reltuples AS reltuples,
+        idx.indisprimary,
+        idx.indisvalid,
+        con.contype
+    FROM
+        pg_stat_user_indexes ui
+    JOIN pg_index idx ON ui.indexrelid = idx.indexrelid
+    JOIN pg_class i ON i.oid = ui.indexrelid
+    JOIN pg_class c ON c.oid = idx.indrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    JOIN pg_stat_user_tables t ON t.relid = c.oid
+    LEFT JOIN pg_constraint con ON con.conindid = idx.indexrelid
+    WHERE
+        idx.indisvalid = true
+),
+bloat_estimation AS (
+    SELECT
+        schema_name,
+        index_name,
+        pg_size_pretty(index_size_bytes) AS index_size,
+        (index_size_bytes - (reltuples * 16)) / 1000000 AS index_bloat_mb,
+        CASE
+            WHEN index_size_bytes = 0 THEN 0
+            ELSE (index_size_bytes - (reltuples * 16))::float / NULLIF(index_size_bytes, 0)
+        END AS bloat_ratio
+    FROM
+        index_stats
+    WHERE
+        NOT indisprimary AND (contype IS DISTINCT FROM 'f')
+)
+SELECT
+    schema_name,
+    index_name,
+    index_size,
+    index_bloat_mb,
+    ROUND((bloat_ratio * 100)::numeric, 2) AS bloat_percentage
+FROM
+    bloat_estimation
+WHERE
+    index_bloat_mb > 0
+ORDER BY
+    index_bloat_mb DESC;
+"""
+ 
+# Database connection details
+DB_HOST = "bpay-pgflexi-pr-ats.postgres.database.azure.com"
+DB_PORT = "5432"
+#DB_NAME = "postgres"
+DB_USER = "psqladmin"
+DB_PASSWORD = "P@ssw0rd@5432@2023"
+ 
+# List to store bloated indexes
+index_list = []
+db_list = ['atsdb']
+# Connect to PostgreSQL server
+for db in db_list:
+        try:
+                conn = psycopg2.connect(host=DB_HOST, port=DB_PORT, dbname=db, user=DB_USER, password=DB_PASSWORD)
+                conn.autocommit = True  # Ensure queries execute immediately
+                cursor = conn.cursor()
+ 
+                # Execute query to fetch index bloat details
+                cursor.execute(QUERY)
+                data = cursor.fetchall()
+ 
+                # Extract indexes with wasted space
+                for row in data:
+                        if row[4] > 30.00:
+                                index_list.append(row[1])
+                '''
+                # Set PostgreSQL parameters for optimized reindexing
+                cursor.execute("SET max_parallel_workers_per_gather = 8;")
+                cursor.execute("SET maintenance_work_mem = '20GB';")
+                print("Database parameters set: max_parallel_workers_per_gather = 8, maintenance_work_mem = 20GB")
+ 
+                # Loop through indexes and reindex them concurrently
+                for index in index_list:
+                        try:
+                                query = f"REINDEX INDEX CONCURRENTLY {index};"
+                                print(f"Reindexing: {index}")
+                                cursor.execute(query)
+                                print(f"Successfully reindexed: {index}")
+                        except Exception as e:
+                                print(f"Error reindexing {index}: {e}")
+ 
+                # Reindexing of SYSTEM Catalogs
+                print("Reindexing SYSTEM")
+                cursor.execute(f"REINDEX SYSTEM {db};")
+                print("Successfully reindexed SYSTEM")
+ 
+                # Close the database connection
+                cursor.close()
+                conn.close()
+                print("Database connection closed.")
+                '''
+                print(f"DB NAME: {db}")
+                print(index_list)
+        except Exception as db_error:
+                print(f"Database connection failed: {db_error}")
 ```
 25. Backup
 ```
